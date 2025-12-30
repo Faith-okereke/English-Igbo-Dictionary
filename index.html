@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>english-Igbo Dictionary</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>Simple english – Igbo Dictionary</h1>
+
+    <div class="search-container">
+      <input
+        type="text"
+        id="searchBox"
+        placeholder="Type an english word (e.g., 'go', 'enter')..."
+      />
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+      let dictionary = [];
+
+      // 1. Fetch the JSON data produced by your Python script
+      fetch("clean_igbo_english_dictionary.json")
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("HTTP error " + response.status);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          dictionary = data;
+          console.log("Dictionary loaded:", dictionary.length, "words.");
+        })
+        .catch((err) => {
+          document.getElementById(
+            "results"
+          ).innerHTML = `<div class='card' style='color:red;'>Error: Could not load 'igbo_dictionary.json'. Make sure the python server is running!</div>`;
+          console.error("Load Error:", err);
+        });
+
+      // 2. Filter Results on Type
+      document.getElementById("searchBox").addEventListener("input", (e) => {
+        const query = e.target.value.toLowerCase().trim();
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML = "";
+
+        if (query.length < 1) return;
+
+        // Filter logic
+        const matches = dictionary.filter(
+          (item) =>
+            item.english.toLowerCase().includes(query) ||
+            item.igbo.toLowerCase().includes(query)
+        );
+
+        // Display all results
+        if (matches.length === 0) {
+          resultsDiv.innerHTML = `<div class='card' style='justify-content:center; color:#777;'>No matches found</div>`;
+        } else {
+          // 3. Smart Sort
+          matches.sort((a, b) => {
+            const wordA = a.english.toLowerCase();
+            const wordB = b.english.toLowerCase();
+
+            // Rule 1: Exact matches go to the top
+            if (wordA === query && wordB !== query) return -1;
+            if (wordB === query && wordA !== query) return 1;
+
+            // Rule 2: Words starting with the query go next
+            const aStarts = wordA.startsWith(query);
+            const bStarts = wordB.startsWith(query);
+            if (aStarts && !bStarts) return -1;
+            if (bStarts && !aStarts) return 1;
+
+            // Rule 3: Otherwise, sort alphabetically
+            return wordA.localeCompare(wordB);
+          });
+
+          // 4. Display Results (Top 10)
+          matches.slice(0, 10).forEach((item) => {
+            const card = document.createElement("div");
+            card.className = "card";
+            card.innerHTML = `<div class="term">${item.english}</div><div class="def"> ${item.igbo}</div>`;
+            resultsDiv.appendChild(card);
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
